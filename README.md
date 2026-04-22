@@ -58,3 +58,4 @@ En Railway, una vez creado el proyecto:
 3. Te da una URL como: `nkt-server-production.up.railway.app`
 
 Esa URL es la que ponés en la app del celular en **Ajustes → URL del servidor**.
+# nkt-server
