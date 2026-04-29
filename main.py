@@ -181,6 +181,7 @@ def delete_pago(pago_id: int):
 def get_morosos():
     db = get_db()
     exceptuados = [44, 133, 37]
+
     alumnos_activos = list(db["alumnos"].find(
         {"estado_alu": 1, "alu_ID": {"$nin": exceptuados}},
         {"alu_ID": 1, "apellido_alu": 1, "nombre_alu": 1,
@@ -191,40 +192,44 @@ def get_morosos():
     hoy = datetime.datetime.now()
 
     for alu in alumnos_activos:
-        ultimo = db["pagos"].find_one(
-            {"alu_ID": alu["alu_ID"]},
+        alu_id = alu["alu_ID"]
+        ultimo_pago_doc = db["pagos"].find_one(
+            {"alu_ID": alu_id},
             {"fecha_pago_alu": 1},
             sort=[("fecha_pago_alu", DESCENDING)]
         )
-        if not ultimo:
+        if not ultimo_pago_doc:
             continue
-        fecha_str = ultimo.get("fecha_pago_alu")
-        if not fecha_str:
+        ultimo_pago_str = ultimo_pago_doc.get("fecha_pago_alu")
+        if not ultimo_pago_str:
             continue
         try:
             for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
                 try:
-                    fecha = datetime.datetime.strptime(str(fecha_str).split(".")[0], fmt)
+                    ultimo_pago = datetime.datetime.strptime(
+                        str(ultimo_pago_str).split(".")[0], fmt
+                    )
                     break
                 except ValueError:
                     continue
             else:
                 continue
-            dias = (hoy - fecha).days
-            if dias > 31:
+
+            dias_atraso = (hoy - ultimo_pago).days
+            if dias_atraso > 31:
                 morosos.append({
-                    "alu_ID":        alu["alu_ID"],
-                    "apellido_alu":  alu.get("apellido_alu", ""),
-                    "nombre_alu":    alu.get("nombre_alu", ""),
+                    "alu_ID":          alu_id,
+                    "apellido_alu":    alu.get("apellido_alu", ""),
+                    "nombre_alu":      alu.get("nombre_alu", ""),
                     "disciplinas_alu": alu.get("disciplinas_alu", ""),
-                    "contacto_alu":  alu.get("contacto_alu", ""),
-                    "ultimo_pago":   fecha.strftime("%d/%m/%Y"),
-                    "dias_atraso":   dias - 31,
+                    "contacto_alu":    alu.get("contacto_alu", ""),
+                    "ultimo_pago":     ultimo_pago.strftime("%d/%m/%Y"),
+                    "dias_atraso":     dias_atraso - 31,
                 })
         except Exception:
             continue
 
-    morosos.sort(key=lambda x: x["apellido"])
+    morosos.sort(key=lambda x: x["apellido_alu"])
     return morosos
 
 
