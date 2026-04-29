@@ -213,13 +213,13 @@ def get_morosos():
             dias = (hoy - fecha).days
             if dias > 31:
                 morosos.append({
-                    "alu_ID":      alu["alu_ID"],
-                    "apellido":    alu.get("apellido_alu", ""),
-                    "nombre":      alu.get("nombre_alu", ""),
-                    "disciplinas": alu.get("disciplinas_alu", ""),
-                    "contacto":    alu.get("contacto_alu", ""),
-                    "ultimo_pago": fecha.strftime("%d/%m/%Y"),
-                    "dias_atraso": dias - 31,
+                    "alu_ID":        alu["alu_ID"],
+                    "apellido_alu":  alu.get("apellido_alu", ""),
+                    "nombre_alu":    alu.get("nombre_alu", ""),
+                    "disciplinas_alu": alu.get("disciplinas_alu", ""),
+                    "contacto_alu":  alu.get("contacto_alu", ""),
+                    "ultimo_pago":   fecha.strftime("%d/%m/%Y"),
+                    "dias_atraso":   dias - 31,
                 })
         except Exception:
             continue
@@ -230,13 +230,21 @@ def get_morosos():
 
 # ─── Stats ────────────────────────────────────────────────────────────────────
 
+KWOONS_MENORES = ["Central Menores", "Centro Comercial (Menores)", "SAN ESTEBAN (Menores)"]
+
 @app.get("/stats")
 def get_stats():
-    db      = get_db()
-    activos  = db["alumnos"].count_documents({"estado_alu": 1})
+    db        = get_db()
+    activos   = db["alumnos"].count_documents({"estado_alu": 1})
     inactivos = db["alumnos"].count_documents({"estado_alu": 0})
 
-    pagos = list(db["pagos"].find({}, {"fecha_pago_alu": 1, "monto_pago": 1}))
+    # Obtener kwoon de cada alumno para saber si es menor
+    alumnos_map = {
+        a["alu_ID"]: a.get("kwoon_alu", "")
+        for a in db["alumnos"].find({}, {"alu_ID": 1, "kwoon_alu": 1})
+    }
+
+    pagos = list(db["pagos"].find({}, {"fecha_pago_alu": 1, "monto_pago": 1, "alu_ID": 1}))
     mensual = {}
     for p in pagos:
         fecha_str = str(p.get("fecha_pago_alu") or "").split(" ")[0]
@@ -245,7 +253,12 @@ def get_stats():
         try:
             parts = fecha_str.split("-")
             key   = f"{parts[1]}/{parts[0]}"
-            mensual[key] = mensual.get(key, 0) + float(p.get("monto_pago") or 0)
+            monto = float(p.get("monto_pago") or 0)
+            # Si el alumno es de kwoon menores, contar solo el 20%
+            kwoon = alumnos_map.get(p.get("alu_ID"), "")
+            if kwoon in KWOONS_MENORES:
+                monto = monto * 0.20
+            mensual[key] = mensual.get(key, 0) + monto
         except Exception:
             continue
 
