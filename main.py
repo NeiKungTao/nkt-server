@@ -249,7 +249,7 @@ def get_stats():
         for a in db["alumnos"].find({}, {"alu_ID": 1, "kwoon_alu": 1})
     }
 
-    pagos = list(db["pagos"].find({}, {"fecha_pago_alu": 1, "monto_pago": 1, "alu_ID": 1}))
+    pagos = list(db["pagos"].find({}, {"fecha_pago_alu": 1, "monto_pago": 1, "alu_ID": 1, "examen_alu": 1}))
     mensual = {}
     for p in pagos:
         fecha_str = str(p.get("fecha_pago_alu") or "").split(" ")[0]
@@ -259,9 +259,10 @@ def get_stats():
             parts = fecha_str.split("-")
             key   = f"{parts[1]}/{parts[0]}"
             monto = float(p.get("monto_pago") or 0)
-            # Si el alumno es de kwoon menores, contar solo el 20%
+            # Si el alumno es de Central Menores y no es pago de examen, contar solo el 20%
             kwoon = alumnos_map.get(p.get("alu_ID"), "")
-            if kwoon in KWOONS_MENORES:
+            es_examen = int(p.get("examen_alu") or 0) == 1
+            if kwoon in KWOONS_MENORES and not es_examen:
                 monto = monto * 0.20
             mensual[key] = mensual.get(key, 0) + monto
         except Exception:
