@@ -44,18 +44,10 @@ def clean_doc(doc):
 
 def get_next_id(collection_name: str) -> int:
     db = get_db()
-    # Verificar si el counter existe y tiene un valor coherente
-    counter = db["counters"].find_one({"_id": collection_name})
-    if not counter:
-        # Inicializar con el máximo ID existente en la colección
-        id_field = "alu_ID" if collection_name == "alumnos" else "pago_ID"
-        pipeline = [{"$group": {"_id": None, "max_id": {"$max": f"${id_field}"}}}]
-        result = list(db[collection_name].aggregate(pipeline))
-        max_id = int(result[0]["max_id"]) if result and result[0]["max_id"] else 0
-        db["counters"].insert_one({"_id": collection_name, "seq": max_id})
     result = db["counters"].find_one_and_update(
         {"_id": collection_name},
         {"$inc": {"seq": 1}},
+        upsert=True,
         return_document=True
     )
     return result["seq"]
