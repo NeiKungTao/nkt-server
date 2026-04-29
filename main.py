@@ -235,7 +235,7 @@ def get_morosos():
 
 # ─── Stats ────────────────────────────────────────────────────────────────────
 
-KWOONS_MENORES = ["Central Menores", "Centro Comercial (Menores)", "SAN ESTEBAN (Menores)"]
+KWOONS_MENORES = ["Central Menores"]
 
 @app.get("/stats")
 def get_stats():
